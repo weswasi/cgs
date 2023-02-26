@@ -5,9 +5,9 @@ account: weswasi
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 8409656
-bundleId: 6886990
+bundleId: 6889341
 url: https://weswasi.shinyapps.io/c_g_s/
-when: 1677330677.85655
-lastSyncTime: 1677330677.85655
+when: 1677420553.66402
+lastSyncTime: 1677420553.66404
 asMultiple: FALSE
 asStatic: FALSE

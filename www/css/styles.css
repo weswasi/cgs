@@ -21,7 +21,6 @@ body {
 
 .footer_container {
     display: flex;
-    position:absolute;bottom:0; width:100%;
     flex-direction: column;
     flex-wrap: nowrap;
     align-content: center;

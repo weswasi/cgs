@@ -1,11 +1,11 @@
 # Load packages ----------------------------------------------------------------
-
 library(shiny)
-library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
 library(gridExtra)
 
 # Define UI --------------------------------------------------------------------
-
 ui <- tagList(
   includeCSS(path = "www/css/styles.css"), 
   tags$div(
@@ -25,11 +25,10 @@ ui <- tagList(
             # Select distribution ----
             radioButtons("dist", "Populationsfördelning:",
                          c("Normal" = "rnorm",
-                           "Uniform" = "runif",
-                           "Höger snedfördelning" = "rlnorm",
-                           "Vänster snedfördelning" = "rbeta"),
+                           "Positiv snedfördelning" = "rlnorm",
+                           "Negativ snedfördelning" = "rbeta"),
+                         # "Uniform" = "runif"), Uniform distribution is disabled. Remove comment to restore
                          selected = "rnorm"),
-            hr(),
             
             # Distribution parameters / features ----
             uiOutput("mu"),
@@ -43,7 +42,6 @@ ui <- tagList(
                         value = 30,
                         min = 2,
                         max = 500),
-            br(),
             
             # Number of samples ----
             sliderInput("k",
@@ -60,9 +58,14 @@ ui <- tagList(
             # First tab ----
             tabPanel(
               title = "Populationsfördelning",
-              # Population plot ----
-              plotOutput("pop.dist", height = "500px"),
-              br()
+              fluidRow(
+                column(width = 12,
+                       # Population plot ----
+                       plotOutput("pop.dist", height = "500px"),
+                       textOutput("pop.descr"),
+                       br()
+                )
+              ),
             ),
             # Second tab ----
             tabPanel(
@@ -71,7 +74,7 @@ ui <- tagList(
               br(),
               plotOutput("sample.dist", height = "600px"),
               #  Number of samples text ----
-              div(h3(textOutput("num.samples")), align = "center"),
+              div(textOutput("num.samples")),
               br()
             ),
             # Third tab ----
@@ -103,6 +106,16 @@ ui <- tagList(
       )
     )
   ),
+  br(),
+  br(),
+  br(),
+  br(),
+  br(),  
+  br(),
+  br(),
+  br(),
+  br(),
+  br(),
   tags$footer(
     tags$div(
       class = "footer_container", 
@@ -113,7 +126,6 @@ ui <- tagList(
 )
 
 # Define server function --------------------------------------------
-
 seed <- as.numeric(Sys.time())
 
 server <- function(input, output, session) {
@@ -262,12 +274,13 @@ server <- function(input, output, session) {
   })
   
   # plot 1 a) ----
+  
   output$pop.dist = renderPlot({
     
     distname = switch(input$dist,
                       rnorm = "Populationsfördelning: Normal",
-                      rlnorm = "Populationsfördelning Höger snedfördelning",
-                      rbeta = "Populationsfördelning: Vänster snedfördelning",
+                      rlnorm = "Populationsfördelning: Positiv snedfördelning",
+                      rbeta = "Populationsfördelning: Negativ snedfördelning",
                       runif = "Populationsfördelning: Uniform")
     
     pop = parent()
@@ -289,20 +302,21 @@ server <- function(input, output, session) {
       x_pos = ifelse(mu > 0, min(-100, min(pop$samples)) + 20,
                      max(100, max(pop$samples)) - 20)
       
-      ggplot(data = pop, aes(x = samples, y = ..density..)) + 
-        geom_histogram(bins = 45, color = "white", fill = "#195190") +
-        stat_density(geom="line", color = "#195190", size = 1) +
+      ggplot(data = pop, aes(x = samples, y = after_stat(density))) + 
+        geom_histogram(bins = 45, color = "white", fill = "#595959") +
+        stat_density(geom="line", color = "#595959", size = 1) +
         scale_x_continuous(limits = c(min(-100, pop$samples), max(100, pop$samples))) +
-        labs(title = distname, x = "x") +
+        labs(title = distname, x = "", y = "") +
         annotate("text", x = x_pos, y = y_pos,
                  label = paste("medelvärde", "=", bquote(.(m_pop)),
                                "\n", "standardavvikelse", "=", bquote(.(sd_pop))),
                  color = "black", size = 5) +
-        ylab("") +
-        theme_light(base_size = 19) + # better than doing title sizes inside theme().
+        theme_light(base_size = 19) +
         theme(plot.title = element_text(hjust = 0.5),
               panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank())
+              panel.grid.minor = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank())
       
     } else if (input$dist == "runif"){
       
@@ -313,53 +327,59 @@ server <- function(input, output, session) {
         
         x_pos = max(pop$samples) - 0.1*x_range
         
-        ggplot(data = pop, aes(x = samples, y = ..density..)) +
-          geom_histogram(bins = 45, color = "white", fill = "#195190") +
-          stat_density(geom = "line", color = "#195190", size = 1) +
+        ggplot(data = pop, aes(x = samples, y = after_stat(density))) +
+          geom_histogram(bins = 45, color = "white", fill = "#595959") +
+          stat_density(geom = "line", color = "#595959", size = 1) +
           scale_y_continuous(expand = expansion(mult = c(0, .3))) +
-          labs(title = distname, x = "x") +
+          labs(title = distname, x = "", y = "") +
           annotate("text", x = x_pos, y = y_pos + 0.5*max(pdens$y),
                    label = paste("medelvärde", "=", bquote(.(m_pop)),
                                  "\n", "standardavvikelse", "=", bquote(.(sd_pop))),
                    color = "black", size = 5) +
-          theme_light(base_size = 10) +
+          theme_light(base_size = 19) +
           theme(plot.title = element_text(hjust = 0.5),
                 panel.grid.major = element_blank(),
-                panel.grid.minor = element_blank())}
+                panel.grid.minor = element_blank(),
+                axis.text.y = element_blank(),
+                axis.ticks.y = element_blank())}
       
     } else if (input$dist == "rlnorm"){
       
       x_pos = max(pop$samples) - 0.1*x_range
       
-      ggplot(data = pop, aes(x = samples, y = ..density..)) + 
-        geom_histogram(bins = 45, color = "white", fill = "#195190") +
-        stat_density(geom = "line", color = "#195190", size = 1) +
-        labs(title = distname, x = "x") +
+      ggplot(data = pop, aes(x = samples, y = after_stat(density))) + 
+        geom_histogram(bins = 45, color = "white", fill = "#595959") +
+        stat_density(geom = "line", color = "#595959", size = 1) +
+        labs(title = distname, x = "", y = "") +
         annotate("text", x = x_pos, y = y_pos,
                  label = paste("medelvärde", "=", bquote(.(m_pop)), 
                                "\n", "standardavvikelse", "=", bquote(.(sd_pop))),
                  color = "black", size = 5) +
-        theme_light(base_size = 10) +
+        theme_light(base_size = 19) +
         theme(plot.title = element_text(hjust = 0.5),
               panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank())
+              panel.grid.minor = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank())
       
     } else if (input$dist == "rbeta"){
       
       x_pos = min(pop$samples) + 0.1*x_range
       
-      ggplot(data = pop, aes(x = samples, y = ..density..)) + 
-        geom_histogram(bins = 45, color = "white", fill = "#195190") +
-        stat_density(geom = "line", color = "#195190", size = 1) +
-        labs(title = distname, x = "x") +
+      ggplot(data = pop, aes(x = samples, y = after_stat(density))) + 
+        geom_histogram(bins = 45, color = "white", fill = "#595959") +
+        stat_density(geom = "line", color = "#595959", size = 1) +
+        labs(title = distname, x = "", y = "") +
         annotate("text", x = x_pos, y = y_pos, 
                  label = paste("medelvärde", "=", bquote(.(m_pop)), 
                                "\n", "standardavvikelse", "=", bquote(.(sd_pop))),
                  color = "black", size = 5) +
-        theme_light(base_size = 10) +
+        theme_light(base_size = 19) +
         theme(plot.title = element_text(hjust = 0.5),
               panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank())
+              panel.grid.minor = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank())
       
     }
   })
@@ -373,8 +393,8 @@ server <- function(input, output, session) {
     
     distname = switch(input$dist,
                       rnorm = "Populationsfördelning: Normal",
-                      rlnorm = "Populationsfördelning Höger snedfördelning",
-                      rbeta = "Populationsfördelning: Vänster snedfördelning",
+                      rlnorm = "Populationsfördelning: Positiv snedfördelning",
+                      rbeta = "Populationsfördelning: Negativ snedfördelning",
                       runif = "Populationsfördelning: Uniform")
     
     pop = parent()
@@ -396,9 +416,9 @@ server <- function(input, output, session) {
       x_pos = ifelse(mu > 0, min(-100, min(pop$samples)) + 40,
                      max(100, max(pop$samples)) - 40)
       
-      ggplot(data = pop, aes(x = samples, y = ..density..)) + 
-        geom_histogram(bins = 45, color = "white", fill = "#195190") +
-        stat_density(geom="line", color = "#195190", size = 1) +
+      ggplot(data = pop, aes(x = samples, y = after_stat(density))) + 
+        geom_histogram(bins = 45, color = "white", fill = "#595959") +
+        stat_density(geom="line", color = "#595959", size = 1) +
         scale_x_continuous(limits = c(min(-100, pop$samples), max(100, pop$samples))) +
         labs(title = distname, x = "x") +
         annotate("text", x = x_pos, y = y_pos,
@@ -409,7 +429,9 @@ server <- function(input, output, session) {
         ylab("") +
         theme(plot.title = element_text(hjust = 0.5),
               panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank())
+              panel.grid.minor = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank())
       
     } else if (input$dist == "runif"){
       
@@ -419,9 +441,9 @@ server <- function(input, output, session) {
         
         x_pos = max(pop$samples) - 0.15*x_range
         
-        ggplot(data = pop, aes(x = samples, y = ..density..)) +
-          geom_histogram(bins = 45, color = "white", fill = "#195190") +
-          stat_density(geom = "line", color = "#195190", size = 1) +
+        ggplot(data = pop, aes(x = samples, y = after_stat(density))) +
+          geom_histogram(bins = 45, color = "white", fill = "#595959") +
+          stat_density(geom = "line", color = "#595959", size = 1) +
           scale_y_continuous(expand = expansion(mult = c(0, .3))) +
           labs(title = distname, x = "x") +
           annotate("text", x = x_pos, y = y_pos + 0.5*max(pdens$y),
@@ -431,15 +453,17 @@ server <- function(input, output, session) {
           theme_light(base_size = 10) +
           theme(plot.title = element_text(hjust = 0.5),
                 panel.grid.major = element_blank(),
-                panel.grid.minor = element_blank())}
+                panel.grid.minor = element_blank(),
+                axis.text.y = element_blank(),
+                axis.ticks.y = element_blank())}
       
     } else if (input$dist == "rlnorm"){
       
       x_pos = max(pop$samples) - 0.15*x_range
       
-      ggplot(data = pop, aes(x = samples, y = ..density..)) + 
-        geom_histogram(bins = 45, color = "white", fill = "#195190") +
-        stat_density(geom = "line", color = "#195190", size = 1) +
+      ggplot(data = pop, aes(x = samples, y = after_stat(density))) + 
+        geom_histogram(bins = 45, color = "white", fill = "#595959") +
+        stat_density(geom = "line", color = "#595959", size = 1) +
         labs(title = distname, x = "x") +
         annotate("text", x = x_pos, y = y_pos,
                  label = paste("medelvärde", "=", bquote(.(m_pop)), 
@@ -448,15 +472,17 @@ server <- function(input, output, session) {
         theme_light(base_size = 10) +
         theme(plot.title = element_text(hjust = 0.5),
               panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank())
+              panel.grid.minor = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank())
       
     } else if (input$dist == "rbeta"){
       
       x_pos = min(pop$samples) + 0.15*x_range
       
-      ggplot(data = pop, aes(x = samples, y = ..density..)) + 
-        geom_histogram(bins = 45, color = "white", fill = "#195190") +
-        stat_density(geom = "line", color = "#195190", size = 1) +
+      ggplot(data = pop, aes(x = samples, y = after_stat(density))) + 
+        geom_histogram(bins = 45, color = "white", fill = "#595959") +
+        stat_density(geom = "line", color = "#595959", size = 1) +
         labs(title = distname, x = "x") +
         annotate("text", x = x_pos, y = y_pos, 
                  label = paste("medelvärde", "=", bquote(.(m_pop)), 
@@ -465,7 +491,9 @@ server <- function(input, output, session) {
         theme_light(base_size = 10) +
         theme(plot.title = element_text(hjust = 0.5),
               panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank())
+              panel.grid.minor = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank())
       
     }
   })
@@ -500,7 +528,9 @@ server <- function(input, output, session) {
         scale_y_continuous(limits = c(0,2), breaks = NULL) +
         theme(plot.title = element_text(hjust = 0.5),
               panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank())
+              panel.grid.minor = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank())
     }
     
     grid.arrange(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]],
@@ -513,7 +543,8 @@ server <- function(input, output, session) {
   output$num.samples = renderText({
     
     k = input$k
-    paste0("... och så fortsätter det till stickprov ",k,".")
+    paste0("... och så fortsätter det till stickprov ",k,". Klicka på fliken Stickprovsfördelning för at se hur det skulle se ut om vi tog ut
+           medelvärdena från samtliga ", k, " stickprov och la de i en figur och beräknade medelvärdet för medelvärdena samt spridningen som medelvärdena uppvisar.")
     
   })
   
@@ -522,8 +553,8 @@ server <- function(input, output, session) {
     
     distname = switch(input$dist,
                       rnorm = "normalfördelad population",
-                      rlnorm  = "höger snedfördelad population",
-                      rbeta = "vänster snedfördeladpopulation",
+                      rlnorm  = "positiv snedfördelad population",
+                      rbeta = "negativ snedfördeladpopulation",
                       runif = "uniform population")
     
     n = input$n
@@ -548,10 +579,10 @@ server <- function(input, output, session) {
     x_pos = ifelse(m_samp > 0, min(ndist$means) + 0.1*x_range, 
                    max(ndist$means) - 0.1*x_range)
     
-    p = ggplot(data = ndist, aes(x = means, y = ..density..)) +
-      geom_histogram(bins = 20, color = "white", fill = "#009499") +
-      stat_density(geom = "line", color = "#009499", size = 1) +
-      labs(title = paste("Stickprovsfördelning*"),
+    p = ggplot(data = ndist, aes(x = means, y = after_stat(density))) +
+      geom_histogram(bins = 20, color = "white", fill = "#ea9999") +
+      stat_density(geom = "line", color = "#ea9999", size = 1) +
+      labs(title = paste("Stickprovsfördelning"),
            x = "Stickprovsmedelvärde",
            y = "") +
       annotate("text", x = x_pos, y = y_pos,
@@ -561,7 +592,9 @@ server <- function(input, output, session) {
       theme_light(base_size = 19) +
       theme(plot.title = element_text(hjust = 0.5),
             panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank())
+            panel.grid.minor = element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank())
     
     if (input$dist == "runif"){
       
@@ -575,18 +608,42 @@ server <- function(input, output, session) {
     }
   })
   
-  # description for sampling distribution plot ----
+  # description for population and sampling distribution plot ----
+  # description for population ----
+  output$pop.descr = renderText({
+    
+    pop = parent()
+    
+    distname = switch(input$dist,
+                      rnorm = "normalfördelad",
+                      rlnorm  = "positivt snedfördelad",
+                      rbeta = "negativt snedfördelad",
+                      runif = "uniform")
+    
+    m_pop =  round(mean(pop),2)
+    s_pop = round(sd(pop),2)
+    
+    k = input$k
+    n = input$n
+    
+    se=round(s_pop/sqrt(n),2)
+    
+    paste0("Ovanstående är en population vars fördelning är ", distname,  " med ett medelvärde på ", m_pop, " och en standardavvikelse
+          på ", s_pop, ". Klicka på fliken Stickprov för att se hur fördelningen för enskilda stickprov skulle se ut om vi drog ", k, 
+          " stickprov från ovanstående population där varje enskilda stickprov innehåller ", n, " observationer.")
+  })
+  
   output$sampling.descr = renderText({
     
     distname = switch(input$dist,
                       rnorm = "normalfördelad population",
-                      rlnorm  = "höger snedfördelad population",
-                      rbeta = "vänster snedfördeladpopulation",
+                      rlnorm  = "positivt snedfördelad population",
+                      rbeta = "negativt snedfördelad population",
                       runif = "uniform population")
     
     k = input$k
     n = input$n
-    paste("*Fördelningen av medelvärden från ", k, "slumpmässiga stickprov,
+    paste("Fördelningen av medelvärden från ", k, "slumpmässiga stickprov,
           som varje enskilt innehåller", n, " observationer
           från en", distname)
   })
@@ -601,12 +658,13 @@ server <- function(input, output, session) {
     n = input$n
     se=round(s_pop/sqrt(n),2)
     
-    paste0("Centrala gränsvärdessatsen (CGS) säger att om vi upprepade gånger beräknar medelvärdet 
-           av ett stort antal antal slumpmässiga observationer så kommer fördelningen av dessa medelvärden (samplingfördelningen)
+    paste0("Centrala gränsvärdessatsen säger att om vi upprepade gånger beräknar medelvärdet 
+           av ett stort antal antal slumpmässiga observationer så kommer fördelningen av dessa medelvärden (den så kallade samplingfördelningen)
            att uppvisa en normalfördelning - nästa oavsett hur populationens ursprungliga fördelning ser ut. 
-           Samplingfördelningens medelvärde bör vara nära populationens medelvärde (", m_pop, ") och standardfelet 
-           (också kallad standardavvikelsen av medelvärden) bör vara nära populationens standardavvikelse delat med roten ur stickprovsstorleken 
-           (", s_pop, " / roten ur ",n, " = ", se,"). Här nedan är en figur över vår stickprovsfördelning. Uppe till höger är populationsfördelningen.")
+           Samplingfördelningens medelvärde bör vara nära populationens medelvärde (", m_pop, ") och standardfelet bör vara nära populationens 
+           standardavvikelse delat med roten ur stickprovsstorleken (", s_pop, " / roten ur ",n, " = ", se,"). Standardfelet är likt standardavvikelsen
+           en beskrivning av spridningen. Standardfel beskriver dock den genomsnittliga spridningen av medelvärdena. 
+           Här nedan är en figur över vår stickprovsfördelning. Uppe till höger är populationsfördelningen.")
   })
 }
 # Create the Shiny app object ---------------------------------------
