@@ -21,7 +21,6 @@ ui <- tagList(
       # Title ----
       sidebarLayout(
         sidebarPanel(
-          wellPanel(
             # Select distribution ----
             radioButtons("dist", "Populationsfördelning:",
                          c("Normal" = "rnorm",
@@ -51,11 +50,10 @@ ui <- tagList(
                         max = 1000),
             br(),
             tags$a(
-              href="https://github.com/weswasi/standardavvikelse", 
+              href="https://github.com/weswasi/cgs", 
               tags$img(src="https://github.githubassets.com/images/modules/logos_page/Octocat.png",
                        width="40",
                        height="35")),
-          ),
         ),
         
         mainPanel(
