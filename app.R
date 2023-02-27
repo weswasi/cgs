@@ -48,7 +48,13 @@ ui <- tagList(
                         "Antal stickprov:",
                         value = 200,
                         min = 10,
-                        max = 1000)
+                        max = 1000),
+            br(),
+            tags$a(
+              href="https://github.com/weswasi/standardavvikelse", 
+              tags$img(src="https://github.githubassets.com/images/modules/logos_page/Octocat.png",
+                       width="40",
+                       height="35")),
           ),
         ),
         
@@ -104,14 +110,6 @@ ui <- tagList(
           )
         )
       )
-    )
-  ),
-  tags$footer(
-    tags$div(
-      
-      class = "footer_container", 
-      
-      includeHTML(path = "www/html/footer.html")
     )
   )
 )
@@ -621,7 +619,7 @@ server <- function(input, output, session) {
     
     paste0("Ovanstående är en population vars fördelning är ", distname,  " med ett medelvärde på ", m_pop, " och en standardavvikelse
           på ", s_pop, ". Klicka på fliken Stickprov för att se hur fördelningen för enskilda stickprov skulle se ut om vi drog ", k, 
-          " stickprov från ovanstående population där varje enskilda stickprov innehåller ", n, " observationer.")
+           " stickprov från ovanstående population där varje enskilda stickprov innehåller ", n, " observationer.")
   })
   
   output$sampling.descr = renderText({

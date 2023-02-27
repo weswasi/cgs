@@ -18,17 +18,3 @@ body {
     color: white;
     padding: 1%;
 }
-
-.footer_container {
-    position:absolute;
-    bottom:0;
-    width:100%;
-    display: flex;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-content: center;
-    justify-content: center;
-    align-items: center;
-    background-color: #e06666;
-    padding: 0.3%;
-}
